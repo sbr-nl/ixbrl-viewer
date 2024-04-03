@@ -1,0 +1,39 @@
+// See COPYRIGHT.md for copyright information
+
+.accordian .card {
+  margin-top: 0.4rem;
+  background-color: @button-background;
+
+  .card-body {
+    display: none;
+    padding-left: 1.6rem;
+    padding-right: 1.6rem;
+    padding-bottom: 0.8rem;
+
+    & > h4:first-child {
+      margin-top: 0.8rem;
+    }
+  }
+
+  .title {
+    padding: 1.2rem 1.6rem;
+    cursor: pointer;
+    line-height: 1.8rem;
+
+    &:hover {
+      background-color: #f3f3f3;
+    }
+  }
+
+  &.active {
+    background-color: #f3f3f3;
+
+    .title {
+      font-weight: bold;
+    }
+
+    .card-body {
+      display: block;
+    }
+  }
+}

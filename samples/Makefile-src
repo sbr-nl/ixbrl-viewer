@@ -1,0 +1,34 @@
+# Copyright 2019 Workiva Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+TARGET=$(shell basename $(CURDIR))
+SRC_FILES=$(wildcard *)
+
+viewer: ../../viewers/$(TARGET)
+	echo $<
+
+make_viewer = PYTHONPATH=../../../Arelle:../../../ ../../build-viewer.py --package-dir=../../packages --out=$(2) --viewer-url=../../../iXBRLViewerPlugin/viewer/dist/ixbrlviewer.dev.js $(1)
+
+TAXONOMY_FILES = $(wildcard *.x??)
+
+COMMON_DEPS = ../../viewers/ $(TAXONOMY_FILES) $(wildcard ../../../iXBRLViewerPlugin/*.py)
+
+../../viewers/%: ../../viewers/ $(SRC_FILES) $(COMMON_DEPS)
+	mkdir -p $@
+	$(call make_viewer,.,$@)
+	touch $@
+
+../../viewers/: 
+	mkdir -p $@
+

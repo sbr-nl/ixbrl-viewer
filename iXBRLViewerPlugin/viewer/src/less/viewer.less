@@ -1,0 +1,167 @@
+// See COPYRIGHT.md for copyright information
+
+@import url("fonts.less");
+@import url("colours.less");
+@import url("common.less");
+
+.ixbrl-highlight:not(.ixbrl-no-highlight) {
+  // To ensure highlighting takes place, !important is used to override inline styles.
+  // For example: overrides highlighting applied inline to alternate table rows.
+  background-color: @highlight-default !important; // Override inline styles
+
+  &.ixbrl-highlight-1 {
+    background-color: @highlight-1 !important; // Override inline styles
+  }
+
+  &.ixbrl-highlight-2 {
+    background-color: @highlight-2 !important; // Override inline styles
+  }
+}
+
+.review.review-highlight-untagged-numbers .review-untagged-number {
+  background-color: @highlight-1;
+}
+
+.review.review-highlight-untagged-dates .review-untagged-date {
+  background-color: @highlight-2;
+}
+
+.review .ixbrl-highlight:not(.ixbrl-no-highlight) {
+  // Review mode disables namespace-specific highlighting in favor of all tagged
+  // elements sharing the same default highlight color, other colors are used for
+  // untagged highlighting defined above.
+  background-color: @highlight-default !important; // Override inline styles
+
+  &.ixbrl-highlight-1 {
+    background-color: @highlight-default !important; // Override inline styles
+  }
+
+  &.ixbrl-highlight-2 {
+    background-color: @highlight-default !important; // Override inline styles
+  }
+}
+
+div,
+span {
+  &:not(.ixbrl-no-highlight) {
+    &.ixbrl-selected {
+      outline: solid 0.125em @primary-focus;
+      outline-offset: 0.0625em;
+    }
+
+    &.ixbrl-element,
+    &.ixbrl-sub-element {
+      &:hover:not(.ixbrl-selected) {
+        outline: dashed 0.125em @primary-focus;
+        outline-offset: 0.0625em;
+      }
+    }
+  }
+}
+
+:not(.ixbrl-no-highlight) {
+  &.ixbrl-element,
+  &.ixbrl-sub-element {
+    cursor: pointer;
+
+    &.ixbrl-related {
+      outline: dashed 0.125em @related-fact;
+
+      &:not(td, th) {
+        outline-offset: 0.0625em;
+      }
+    }
+  }
+}
+
+td,
+th {
+  &:not(.ixbrl-no-highlight) {
+    &.ixbrl-selected {
+      outline: solid 0.125em @primary-focus !important;
+      outline-offset: -0.0625em !important;
+    }
+
+    &.ixbrl-element:hover:not(.ixbrl-selected),
+    &.ixbrl-sub-element:hover:not(.ixbrl-selected) {
+      outline: dashed 0.125em @primary-focus !important;
+      outline-offset: -0.0625em !important;
+    }
+  }
+
+  &.ixbrl-related {
+    outline-offset: -0.0625em !important;
+  }
+}
+
+.ixbrl-related.ixbrl-linked-highlight:not(.ixbrl-no-highlight),
+.ixbrl-linked-highlight:not(.ixbrl-no-highlight) {
+  .linked-highlight-text();
+}
+
+td.ixbrl-related.ixbrl-linked-highlight:not(.ixbrl-no-highlight),
+td.ixbrl-linked-highlight:not(.ixbrl-no-highlight) {
+  .linked-highlight-cell();
+
+  outline-offset: -0.0625em;
+}
+
+div.ixbrl-table-handle {
+  @export-handle-size: 0.4rem;
+
+  position: absolute;
+  left: 0;
+  cursor: pointer;
+  width: 0;
+  height: 0;
+  border: @export-handle-size solid transparent;
+  border-bottom-color: @workiva-green;
+  top: -2 * @export-handle-size;
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: -@export-handle-size;
+    top: @export-handle-size;
+    width: 0;
+    height: 0;
+    border: @export-handle-size solid transparent;
+    border-top-color: @workiva-green;
+  }
+
+  & > span {
+    display: none;
+    white-space: nowrap;
+  }
+
+  &:hover {
+    &::after {
+      display: none;
+    }
+
+    border: none;
+    color: #fff;
+    transition: width 0.3s;
+    width: 9rem;
+    height: initial;
+    left: -0.1rem;
+    padding: 0;
+    z-index: 1;
+
+    & > span {
+      &::before {
+        .icon-download();
+
+        position: absolute;
+        left: 0.8rem;
+        font-size: 1.2rem;
+      }
+
+      border: solid 0.1rem #fff;
+      font-family: sans-serif;
+      display: block;
+      padding: 0.7rem 1.5rem 0.7rem 2.5rem;
+      background-color: @workiva-green;
+    }
+  }
+}
