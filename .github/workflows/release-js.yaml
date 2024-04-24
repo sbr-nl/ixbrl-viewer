@@ -19,6 +19,9 @@ jobs:
           check-latest: true
       - name: Install dependencies
         run: npm install
+      - name: Fonts
+        run: |
+          make font
 
       - name: Build script
         id: buildscript
