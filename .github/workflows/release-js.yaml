@@ -28,7 +28,7 @@ jobs:
       - name: Build script
         id: buildscript
         run: |
-          npm run dist
+          make dist
 
       - name: Show!
         run: ls -l iXBRLViewerPlugin/viewer/dist
