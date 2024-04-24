@@ -22,7 +22,7 @@ jobs:
         run: npm install
 
       - name: Create distribution directory
-        run: mkdir -p iXBRLViewerPlugin/viewer/dist/ixbrl_viewer.js
+        run: mkdir -p js/dist/ixbrlviewer.js
 
       - name: Fonts
         run: |
