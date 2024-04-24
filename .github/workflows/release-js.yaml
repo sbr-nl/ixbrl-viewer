@@ -18,7 +18,7 @@ jobs:
           cache: 'npm'
           check-latest: true
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build script
         id: buildscript
