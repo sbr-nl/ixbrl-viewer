@@ -59,10 +59,14 @@ jobs:
       - uses: release-drafter/release-drafter@v6.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download ixbrlviewer.js artifact
+        uses: actions/download-artifact@v4.1.6
+        with:
+          name: ixbrlviewer.js
       - name: Upload to release
         uses: svenstaro/upload-release-action@v2
         with:
-          file: iXBRLViewerPlugin/viewer/dist/ixbrlviewer.js
+          file: ixbrlviewer.js
           asset_name: ixbrlviewer.js
           overwrite: true
           body: "Custom javascript file"
