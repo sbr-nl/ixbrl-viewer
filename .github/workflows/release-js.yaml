@@ -35,7 +35,7 @@ jobs:
       - name: Build script
         id: buildscript
         run: |
-          make dist
+          make prod
 
       - name: Show!
         run: ls -l iXBRLViewerPlugin/viewer/dist
