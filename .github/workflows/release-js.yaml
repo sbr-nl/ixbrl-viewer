@@ -17,14 +17,21 @@ jobs:
         with:
           cache: 'npm'
           check-latest: true
+
       - name: Install dependencies
         run: npm install
+
+      - name: Create distribution directory
+        run: mkdir -p iXBRLViewerPlugin/viewer/dist/ixbrl_viewer.js
+
       - name: Fonts
         run: |
           make font
+
       - name: Zet bestanden op hun plek.
         run: |
           make iXBRLViewerPlugin/viewer/dist/ixbrl_viewer.js
+
       - name: Build script
         id: buildscript
         run: |
