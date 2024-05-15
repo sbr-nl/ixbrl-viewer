@@ -1,0 +1,72 @@
+name: Create javascript for inline viewer
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: "Build javascript"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4.0.2
+        with:
+          cache: 'npm'
+          check-latest: true
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create distribution directory
+        run: mkdir -p js/dist/ixbrlviewer.js
+
+      - name: Fonts
+        run: |
+          make font
+
+      - name: Zet bestanden op hun plek.
+        run: |
+          make iXBRLViewerPlugin/viewer/dist/ixbrl_viewer.js
+
+      - name: Build script
+        id: buildscript
+        run: |
+          make prod
+
+      - name: Show!
+        run: ls -l iXBRLViewerPlugin/viewer/dist
+
+      - name: Upload ixbrlviewer.js artifact
+        uses: actions/upload-artifact@v4.3.3
+        with:
+          name: ixbrlviewer.js
+          if-no-files-found: error
+          path: iXBRLViewerPlugin/viewer/dist/ixbrlviewer.js
+
+
+  pre-release:
+      name: "Pre Release"
+      runs-on: "ubuntu-latest"
+      needs: build
+      permissions:
+        contents: write
+        pull-requests: read
+      steps:
+      - uses: release-drafter/release-drafter@v6.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download ixbrlviewer.js artifact
+        uses: actions/download-artifact@v4.1.6
+        with:
+          name: ixbrlviewer.js
+      - name: Upload to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file: ixbrlviewer.js
+          asset_name: ixbrlviewer.js
+          overwrite: true
+          body: "Custom javascript file"

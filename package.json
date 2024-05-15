@@ -18,7 +18,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:Arelle/ixbrl-viewer.git"
+    "url": "git@github.com:sbr-nl/ixbrl-viewer.git"
   },
   "stylelint": {
     "customSyntax": "postcss-less",
