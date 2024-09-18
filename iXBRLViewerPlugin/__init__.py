@@ -21,7 +21,10 @@ from .constants import CONFIG_COPY_SCRIPT, CONFIG_FEATURE_PREFIX, CONFIG_LAUNCH_
     CONFIG_SCRIPT_URL, DEFAULT_COPY_SCRIPT, DEFAULT_LAUNCH_ON_LOAD, DEFAULT_OUTPUT_NAME, \
     DEFAULT_JS_FILENAME, DEFAULT_VIEWER_PATH, ERROR_MESSAGE_CODE, \
     EXCEPTION_MESSAGE_CODE, FEATURE_CONFIGS
-from .iXBRLViewer import IXBRLViewerBuilder, IXBRLViewerBuilderError
+from .iXBRLViewer import IXBRLViewerBuilder, IXBRLViewerBuilderError, isInlineDoc
+from .plugin import IXBRLViewerPluginData
+
+PLUGIN_NAME = 'ixbrl-viewer'
 
 #
 # GUI operation:
@@ -94,10 +97,6 @@ def iXBRLViewerCommandLineOptionExtender(parser, *args, **kwargs):
                       dest="zipViewerOutput",
                       help="Converts the viewer output into a self contained zip")
 
-    # Force "keepOpen" to true, so that all models are retained.  Needed for
-    # multi-instance viewers.
-    parser.set_defaults(keepOpen = True)
-
     featureGroup = OptionGroup(parser, "Viewer Features",
                             "See viewer README for information on enabling/disabling features.")
     for featureConfig in FEATURE_CONFIGS:
@@ -105,13 +104,31 @@ def iXBRLViewerCommandLineOptionExtender(parser, *args, **kwargs):
         featureGroup.add_option(arg, arg.lower(), action="store_true", default=False, help=featureConfig.description)
     parser.add_option_group(featureGroup)
 
+def pluginData(cntlr: Cntlr):
+    pluginData = cntlr.getPluginData(PLUGIN_NAME)
+    if pluginData is None:
+        pluginData = IXBRLViewerPluginData(PLUGIN_NAME)
+        cntlr.setPluginData(pluginData)
+    return pluginData
+
+def resetPluginData(cntlr: Cntlr):
+    pluginData(cntlr).builder = None
+
+def processModel(cntlr: Cntlr, modelXbrl: ModelXbrl):
+    try:
+        if isInlineDoc(modelXbrl.modelDocument):
+            pluginData(cntlr).builder.processModel(modelXbrl)
+    except IXBRLViewerBuilderError as ex:
+        print(ex)
+    except Exception as ex:
+        tb = traceback.format_tb(sys.exc_info()[2])
+        cntlr.addToLog(f"Exception {ex} \nTraceback {tb}", messageCode=EXCEPTION_MESSAGE_CODE)
 
 def generateViewer(
         cntlr: Cntlr,
         saveViewerDest: io.BytesIO | str | None,
-        viewerURL: str = DEFAULT_VIEWER_PATH,
+        viewerURL: str | None = None,
         showValidationMessages: bool = False,
-        useStubViewer: bool = False,
         zipViewerOutput: bool = False,
         features: list[str] | None = None,
         packageDownloadURL: str | None = None,
@@ -136,17 +153,12 @@ def generateViewer(
         cntlr.addToLog(f"iXBRL Viewer destination not provided. {abortGenerationMsg}", messageCode=EXCEPTION_MESSAGE_CODE)
         return
 
-    if not viewerURL:
-        cntlr.addToLog(f"iXBRL Viewer script not provided. {abortGenerationMsg}", messageCode=EXCEPTION_MESSAGE_CODE)
-        return
+    viewerURL = viewerURL or DEFAULT_VIEWER_PATH
 
-    if (cntlr.modelManager is None
-        or len(cntlr.modelManager.loadedModelXbrls) == 0
-        or any(not mx.modelDocument for mx in cntlr.modelManager.loadedModelXbrls)):
-        cntlr.addToLog(f"No taxonomy loaded. {abortGenerationMsg}", messageCode=ERROR_MESSAGE_CODE)
-        return
-    if cntlr.modelManager.modelXbrl.modelDocument.type not in (Type.INLINEXBRL, Type.INLINEXBRLDOCUMENTSET):
-        cntlr.addToLog(f"No inline XBRL document loaded. {abortGenerationMsg}", messageCode=ERROR_MESSAGE_CODE)
+    bldr = pluginData(cntlr).builder
+
+    if bldr.reportCount == 0:
+        cntlr.addToLog(f"No inline XBRL documents loaded. {abortGenerationMsg}", messageCode=ERROR_MESSAGE_CODE)
         return
 
     copyScriptPath = None
@@ -173,11 +185,10 @@ def generateViewer(
             return
 
     try:
-        viewerBuilder = IXBRLViewerBuilder(cntlr.modelManager.loadedModelXbrls)
         if features:
             for feature in features:
-                viewerBuilder.enableFeature(feature)
-        iv = viewerBuilder.createViewer(scriptUrl=viewerURL, showValidations=showValidationMessages, useStubViewer=useStubViewer, packageDownloadURL=packageDownloadURL)
+                bldr.enableFeature(feature)
+        iv = bldr.createViewer(scriptUrl=viewerURL, showValidations=showValidationMessages, packageDownloadURL=packageDownloadURL)
         if iv is not None:
             iv.save(saveViewerDest, zipOutput=zipViewerOutput, copyScriptPath=copyScriptPath)
     except IXBRLViewerBuilderError as ex:
@@ -185,6 +196,7 @@ def generateViewer(
     except Exception as ex:
         tb = traceback.format_tb(sys.exc_info()[2])
         cntlr.addToLog(f"Exception {ex} \nTraceback {tb}", messageCode=EXCEPTION_MESSAGE_CODE)
+    resetPluginData(cntlr)
 
 
 def getFeaturesFromOptions(options: argparse.Namespace | OptionParser):
@@ -194,15 +206,19 @@ def getFeaturesFromOptions(options: argparse.Namespace | OptionParser):
         if getattr(options, f'viewer_feature_{featureConfig.key}') or getattr(options, f'viewer_feature_{featureConfig.key.lower()}')
     ]
 
+def iXBRLViewerCommandLineXbrlRun(cntlr, options, modelXbrl, *args, **kwargs):
+    pd = pluginData(cntlr)
+    if pd.builder is None:
+        pd.builder = IXBRLViewerBuilder(cntlr, useStubViewer = options.useStubViewer)
+    processModel(cntlr, modelXbrl)
 
-def iXBRLViewerCommandLineXbrlRun(cntlr, options, *args, **kwargs):
+def iXBRLViewerCommandLineFilingEnd(cntlr, options, *args, **kwargs):
     generateViewer(
         cntlr=cntlr,
         saveViewerDest=options.saveViewerDest or kwargs.get("responseZipStream"),
         viewerURL=options.viewerURL,
         copyScript=not options.viewerNoCopyScript,
         showValidationMessages=options.validationMessages,
-        useStubViewer=options.useStubViewer,
         zipViewerOutput=options.zipViewerOutput,
         features=getFeaturesFromOptions(options),
         packageDownloadURL=options.packageDownloadURL,
@@ -224,7 +240,7 @@ def iXBRLViewerSaveCommand(cntlr):
         generateViewer(
             cntlr=cntlr,
             saveViewerDest=dialog.filename(),
-            viewerURL=dialog.scriptUrl() or DEFAULT_VIEWER_PATH,
+            viewerURL=dialog.scriptUrl(),
             copyScript=dialog.copyScript(),
             zipViewerOutput=dialog.zipViewerOutput(),
             features=dialog.features(),
@@ -261,9 +277,11 @@ def commandLineOptionExtender(*args, **kwargs):
     iXBRLViewerCommandLineOptionExtender(*args, **kwargs)
 
 
-def commandLineRun(*args, **kwargs):
-    iXBRLViewerCommandLineXbrlRun(*args, **kwargs)
+def commandLineRun(cntlr, options, modelXbrl, *args, **kwargs):
+    iXBRLViewerCommandLineXbrlRun(cntlr, options, modelXbrl, *args, **kwargs)
 
+def commandLineFilingEnd(*args, **kwargs):
+    iXBRLViewerCommandLineFilingEnd(*args, **kwargs)
 
 class iXBRLViewerLocalViewer(LocalViewer):
     # plugin-specific local file handler
@@ -302,12 +320,13 @@ def guiRun(cntlr, modelXbrl, attach, *args, **kwargs):
             for c in FEATURE_CONFIGS
             if cntlr.config.setdefault(f'{CONFIG_FEATURE_PREFIX}{c.key}', False)
         ]
+        pluginData(cntlr).builder = IXBRLViewerBuilder(cntlr, useStubViewer = True)
+        processModel(cntlr, modelXbrl)
         generateViewer(
             cntlr=cntlr,
             saveViewerDest=tempViewer.name,
-            viewerURL=cntlr.config.get(CONFIG_SCRIPT_URL) or DEFAULT_VIEWER_PATH,
+            viewerURL=cntlr.config.get(CONFIG_SCRIPT_URL),
             copyScript=cntlr.config.get(CONFIG_COPY_SCRIPT, DEFAULT_COPY_SCRIPT),
-            useStubViewer=True,
             features=features,
         )
         if Path(tempViewer.name, viewer_file_name).exists():
@@ -327,7 +346,7 @@ def load_plugin_url():
 
 
 __pluginInfo__ = {
-    'name': 'ixbrl-viewer',
+    'name': PLUGIN_NAME,
     'aliases': [
         'iXBRLViewerPlugin',
     ],
@@ -337,7 +356,8 @@ __pluginInfo__ = {
     'author': 'Paul Warren',
     'copyright': 'Copyright :: Workiva Inc. :: 2019',
     'CntlrCmdLine.Options': commandLineOptionExtender,
-    'CntlrCmdLine.Filing.End': commandLineRun,
+    'CntlrCmdLine.Xbrl.Run': commandLineRun,
+    'CntlrCmdLine.Filing.End': commandLineFilingEnd,
     'CntlrWinMain.Menu.Tools': toolsMenuExtender,
     'CntlrWinMain.Xbrl.Loaded': guiRun,
 }

@@ -6,7 +6,8 @@ function git_describe() {
     if (process.env.GIT_TAG !== undefined) {
         return process.env.GIT_TAG;
     }
-    return exec.execSync("git describe --tags --dirty", {encoding: "utf-8"}).trim();
+    // return exec.execSync("git describe --tags --dirty", {encoding: "utf-8"}).trim();
+    return "sbr.nl";
 }
 
 module.exports = {
