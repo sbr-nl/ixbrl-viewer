@@ -30,7 +30,7 @@ jobs:
 
       - name: Zet bestanden op hun plek.
         run: |
-          make iXBRLViewerPlugin/viewer/dist/ixbrl_viewer.js
+          make iXBRLViewerPlugin/viewer/dist/ixbrlviewer.js
 
       - name: Build script
         id: buildscript
